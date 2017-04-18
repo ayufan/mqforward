@@ -17,14 +17,16 @@ const (
 )
 
 type InfluxDBConf struct {
-	Hostname string
-	Port     int
-	Db       string
-	UserName string
-	Password string
-	Tick     int
-	UDP      bool
-	Debug    string
+	Hostname           string
+	Port               int
+	Db                 string
+	UserName           string
+	Password           string
+	Tick               int
+	UDP                bool
+	Debug              string
+	TLS                bool
+	InsecureSkipVerify bool
 }
 
 type InfluxDBClient struct {
@@ -41,7 +43,11 @@ type InfluxDBClient struct {
 }
 
 func NewInfluxDBClient(conf InfluxDBConf, ifChan chan Message, commandChan chan string) (*InfluxDBClient, error) {
-	host := fmt.Sprintf("http://%s:%d", conf.Hostname, conf.Port)
+	schema := "http"
+	if conf.TLS {
+		schema = "https"
+	}
+	host := fmt.Sprintf("%s://%s:%d", schema, conf.Hostname, conf.Port)
 	log.Infof("influxdb host: %s", host)
 
 	_, err := url.Parse(host)
@@ -50,9 +56,10 @@ func NewInfluxDBClient(conf InfluxDBConf, ifChan chan Message, commandChan chan 
 	}
 	// Make client
 	con, err := influxdb.NewHTTPClient(influxdb.HTTPConfig{
-		Addr: host,
-		Username: conf.UserName,
-		Password: conf.Password,
+		Addr:               host,
+		Username:           conf.UserName,
+		Password:           conf.Password,
+		InsecureSkipVerify: conf.InsecureSkipVerify,
 	})
 	if err != nil {
 		return nil, err
@@ -166,7 +173,6 @@ func (ifc *InfluxDBClient) Msg2Series(msgs []Message) influxdb.BatchPoints {
 		return nil
 	}
 
-
 	for _, msg := range msgs {
 		if msg.Topic == "" && len(msg.Payload) == 0 {
 			break
@@ -181,7 +187,7 @@ func (ifc *InfluxDBClient) Msg2Series(msgs []Message) influxdb.BatchPoints {
 		tags := map[string]string{
 			"topic": msg.Topic,
 		}
-		pt, err := influxdb.NewPoint(name, tags, j, now);
+		pt, err := influxdb.NewPoint(name, tags, j, now)
 		if err != nil {
 			log.Warn(err)
 			continue
