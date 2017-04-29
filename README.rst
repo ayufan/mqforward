@@ -51,8 +51,7 @@ Config example is below. If you put config to `~/.mqforward.ini`, it will be loa
    topic = mqforward/#
 
    [mqforward-influxdb]
-   hostname = 127.0.0.1
-   port = 4444
+   address = http://127.0.0.1:4444
    db = test
    username = root
    password = root

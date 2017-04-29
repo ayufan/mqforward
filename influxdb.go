@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"net/url"
 	"strings"
 	"time"
 
@@ -17,15 +16,13 @@ const (
 )
 
 type InfluxDBConf struct {
-	Hostname           string
-	Port               int
+	Address            string
 	Db                 string
 	UserName           string
 	Password           string
 	Tick               int
 	UDP                bool
 	Debug              string
-	TLS                bool
 	InsecureSkipVerify bool
 }
 
@@ -43,20 +40,11 @@ type InfluxDBClient struct {
 }
 
 func NewInfluxDBClient(conf InfluxDBConf, ifChan chan Message, commandChan chan string) (*InfluxDBClient, error) {
-	schema := "http"
-	if conf.TLS {
-		schema = "https"
-	}
-	host := fmt.Sprintf("%s://%s:%d", schema, conf.Hostname, conf.Port)
-	log.Infof("influxdb host: %s", host)
+	log.Infof("influxdb host: %v", conf.Address)
 
-	_, err := url.Parse(host)
-	if err != nil {
-		return nil, err
-	}
 	// Make client
 	con, err := influxdb.NewHTTPClient(influxdb.HTTPConfig{
-		Addr:               host,
+		Addr:               conf.Address,
 		Username:           conf.UserName,
 		Password:           conf.Password,
 		InsecureSkipVerify: conf.InsecureSkipVerify,
